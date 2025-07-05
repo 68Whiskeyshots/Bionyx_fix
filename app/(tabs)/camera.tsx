@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, Platform } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, Play, Pause, Activity } from 'lucide-react-native';
+import * as MediaLibrary from 'expo-media-library';
+import { Camera, RotateCcw, Play, Pause, Activity, Video, Square } from 'lucide-react-native';
 import { usePoseDetection } from '@/hooks/usePoseDetection';
 import PoseCanvas from '@/components/PoseCanvas';
 
@@ -9,8 +10,15 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
+  const [mediaLibraryPermission, requestMediaLibraryPermission] = MediaLibrary.usePermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownEnabled, setCountdownEnabled] = useState(true);
+  const [countdownDuration, setCountdownDuration] = useState(3);
+  const [saveVideoEnabled, setSaveVideoEnabled] = useState(true);
   const [cameraLayout, setCameraLayout] = useState({ 
     width: screenWidth, 
     height: screenHeight 
@@ -24,6 +32,7 @@ export default function CameraScreen() {
   
   const cameraRef = useRef<CameraView>(null);
   const analysisInterval = useRef<NodeJS.Timeout>();
+  const countdownInterval = useRef<NodeJS.Timeout>();
   const frameCountRef = useRef(0);
   const startTimeRef = useRef(Date.now());
 
@@ -42,13 +51,13 @@ export default function CameraScreen() {
   }, []);
 
   useEffect(() => {
-    if (isAnalyzing) {
+    if (isAnalyzing && !isRecording) {
       startAnalysis();
-    } else {
+    } else if (!isAnalyzing && !isRecording) {
       stopAnalysis();
     }
     return () => stopAnalysis();
-  }, [isAnalyzing]);
+  }, [isAnalyzing, isRecording]);
 
   useEffect(() => {
     if (poses.length > 0) {
@@ -87,6 +96,92 @@ export default function CameraScreen() {
     }
   };
 
+  const startCountdown = () => {
+    setShowCountdown(true);
+    setCountdownValue(countdownDuration);
+    
+    countdownInterval.current = setInterval(() => {
+      setCountdownValue((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval.current!);
+          setShowCountdown(false);
+          startRecording();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const cancelCountdown = () => {
+    if (countdownInterval.current) {
+      clearInterval(countdownInterval.current);
+      countdownInterval.current = undefined;
+    }
+    setShowCountdown(false);
+    setCountdownValue(0);
+  };
+
+  const startRecording = async () => {
+    if (!cameraRef.current) return;
+
+    // Check media library permissions for saving video
+    if (Platform.OS !== 'web' && saveVideoEnabled && !mediaLibraryPermission?.granted) {
+      const { granted } = await requestMediaLibraryPermission();
+      if (!granted) {
+        Alert.alert(
+          'Permission Required',
+          'Media library access is needed to save videos to your device.'
+        );
+        return;
+      }
+    }
+
+    try {
+      setIsRecording(true);
+      setIsAnalyzing(true); // Continue pose detection during recording
+      
+      const videoRecordPromise = cameraRef.current.recordAsync({
+        quality: '720p',
+        maxDuration: 60, // 60 seconds max
+        mute: false,
+      });
+
+      console.log('Recording started...');
+      
+      // Wait for recording to complete
+      const video = await videoRecordPromise;
+      
+      if (video && saveVideoEnabled && Platform.OS !== 'web') {
+        try {
+          await MediaLibrary.saveToLibraryAsync(video.uri);
+          Alert.alert('Success', 'Video saved to your photo library!');
+        } catch (saveError) {
+          console.error('Failed to save video:', saveError);
+          Alert.alert('Error', 'Failed to save video to library');
+        }
+      }
+      
+    } catch (err) {
+      console.error('Recording failed:', err);
+      Alert.alert('Error', 'Failed to record video');
+    } finally {
+      setIsRecording(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!cameraRef.current || !isRecording) return;
+    
+    try {
+      await cameraRef.current.stopRecording();
+      console.log('Recording stopped');
+    } catch (err) {
+      console.error('Failed to stop recording:', err);
+    }
+  };
+
   const updateStats = () => {
     const elapsedTime = (Date.now() - startTimeRef.current) / 1000;
     const fps = elapsedTime > 0 ? frameCountRef.current / elapsedTime : 0;
@@ -105,11 +200,41 @@ export default function CameraScreen() {
   };
 
   const toggleAnalysis = () => {
-    setIsAnalyzing(!isAnalyzing);
+    if (isRecording) {
+      // Stop recording
+      stopRecording();
+    } else if (showCountdown) {
+      // Cancel countdown
+      cancelCountdown();
+    } else if (isAnalyzing) {
+      // Stop analysis
+      setIsAnalyzing(false);
+    } else {
+      // Start countdown or recording
+      if (countdownEnabled) {
+        startCountdown();
+      } else {
+        startRecording();
+      }
+    }
   };
 
   const toggleCameraFacing = () => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
+  };
+
+  const getButtonIcon = () => {
+    if (isRecording) return <Square size={32} color="#fff" />;
+    if (showCountdown) return <Activity size={32} color="#fff" />;
+    if (isAnalyzing) return <Pause size={32} color="#fff" />;
+    return <Play size={32} color="#fff" />;
+  };
+
+  const getButtonStyle = () => {
+    if (isRecording) return [styles.analyzeButton, styles.recordButtonActive];
+    if (showCountdown) return [styles.analyzeButton, styles.countdownButtonActive];
+    if (isAnalyzing) return [styles.analyzeButton, styles.analyzeButtonActive];
+    return styles.analyzeButton;
   };
 
   if (!permission) {
@@ -127,7 +252,7 @@ export default function CameraScreen() {
           <Camera size={64} color="#007AFF" />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to detect poses in real-time.
+            We need access to your camera to detect poses and record videos.
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
@@ -169,7 +294,7 @@ export default function CameraScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
-        mode="picture"
+        mode="video"
         onLayout={(event) => {
           const { width, height } = event.nativeEvent.layout;
           console.log('Camera layout:', { width, height, facing });
@@ -177,6 +302,22 @@ export default function CameraScreen() {
         }}
       >
       </CameraView>
+      
+      {/* Countdown overlay */}
+      {showCountdown && (
+        <View style={styles.countdownOverlay}>
+          <Text style={styles.countdownText}>{countdownValue}</Text>
+          <Text style={styles.countdownLabel}>Get Ready!</Text>
+        </View>
+      )}
+      
+      {/* Recording indicator */}
+      {isRecording && (
+        <View style={styles.recordingIndicator}>
+          <View style={styles.recordingDot} />
+          <Text style={styles.recordingText}>REC</Text>
+        </View>
+      )}
       
       {/* Pose visualization overlay - positioned outside CameraView */}
       <PoseCanvas poses={poses} cameraFacing={facing} cameraLayout={cameraLayout} />
@@ -204,10 +345,19 @@ export default function CameraScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonActive]} 
+          style={getButtonStyle()} 
           onPress={toggleAnalysis}
         >
-          {isAnalyzing ? <Pause size={32} color="#fff" /> : <Play size={32} color="#fff" />}
+          {getButtonIcon()}
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.controlButton} 
+          onPress={() => setCountdownEnabled(!countdownEnabled)}
+        >
+          <Text style={[styles.controlButtonText, { color: countdownEnabled ? '#007AFF' : '#8E8E93' }]}>
+            {countdownDuration}s
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -299,12 +449,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  countdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 10,
+  },
+  countdownText: {
+    color: '#fff',
+    fontSize: 120,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  countdownLabel: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '600',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  recordingIndicator: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    zIndex: 5,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+    marginRight: 6,
+  },
+  recordingText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   statsContainer: {
     position: 'absolute',
     top: 60,
     right: 20,
     flexDirection: 'column',
     gap: 8,
+    zIndex: 5,
   },
   statsBox: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -332,6 +531,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 40,
+    zIndex: 5,
   },
   controlButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -340,6 +540,10 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  controlButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   analyzeButton: {
     backgroundColor: '#007AFF',
@@ -351,5 +555,11 @@ const styles = StyleSheet.create({
   },
   analyzeButtonActive: {
     backgroundColor: '#ff4444',
+  },
+  countdownButtonActive: {
+    backgroundColor: '#FF9500',
+  },
+  recordButtonActive: {
+    backgroundColor: '#ff0000',
   },
 });
