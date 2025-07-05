@@ -1,8 +1,10 @@
 {
-  "name": "bolt-expo-pose-detection",
+  "name": "bionyx",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "private": true,
+  "author": "Dark Matter Labs",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "EXPO_NO_TELEMETRY=1 expo start",
     "dev": "EXPO_NO_TELEMETRY=1 expo start --web",
@@ -61,6 +63,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
+    "react-native-svg-transformer": "^1.5.1",
     "typescript": "~5.8.3"
   }
 }

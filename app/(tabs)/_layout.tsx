@@ -28,7 +28,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="camera"
         options={{
-          title: 'Pose Detection',
+          title: 'BIONYX',
           tabBarIcon: ({ size, color }) => (
             <Camera size={size} color={color} />
           ),

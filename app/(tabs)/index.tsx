@@ -1,13 +1,16 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Link } from 'expo-router';
 import { Camera, Zap, Smartphone, Shield } from 'lucide-react-native';
+import Logo from '@/assets/images/logo.svg';
 
 export default function HomeScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>AI Pose Detection</Text>
+        <Logo width={120} height={120} style={styles.logo} />
+        <Text style={styles.title}>BIONYX</Text>
         <Text style={styles.subtitle}>Real-time pose analysis on mobile</Text>
+        <Text style={styles.copyright}>© 2025 Dark Matter Labs. All Rights Reserved.</Text>
       </View>
 
       <View style={styles.featuresContainer}>
@@ -79,6 +82,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     alignItems: 'center',
   },
+  logo: {
+    marginBottom: 16,
+  },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -90,6 +96,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93',
     textAlign: 'center',
+  },
+  copyright: {
+    fontSize: 12,
+    color: '#6E6E73',
+    textAlign: 'center',
+    marginTop: 8,
   },
   featuresContainer: {
     paddingHorizontal: 20,
