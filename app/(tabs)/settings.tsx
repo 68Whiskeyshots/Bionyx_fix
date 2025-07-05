@@ -2,6 +2,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } f
 import { useState } from 'react';
 import { Settings, Info, Zap, Shield, Smartphone, Video, Timer, Save } from 'lucide-react-native';
 
+import { Play } from 'lucide-react-native';
+
 export default function SettingsScreen() {
   const [highPerformanceMode, setHighPerformanceMode] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
@@ -19,6 +21,9 @@ export default function SettingsScreen() {
         break;
       case 'performance':
         message = 'High performance mode increases processing speed but uses more battery. Recommended for longer recording sessions.';
+        break;
+      case 'display':
+        message = 'Customize how pose detection results are displayed on screen. Higher confidence keypoints appear larger and more opaque.';
         break;
       default:
         message = 'This feature enhances your pose detection experience.';
@@ -125,12 +130,23 @@ export default function SettingsScreen() {
         
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
+            <View style={styles.iconContainer}>
+              <Info size={20} color="#007AFF" />
+            </View>
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>Show Confidence Scores</Text>
               <Text style={styles.settingDescription}>
                 Display pose detection confidence percentages
               </Text>
             </View>
+          </View>
+          <View style={styles.settingControls}>
+            <TouchableOpacity 
+              style={styles.infoButton} 
+              onPress={() => showFeatureInfo('display')}
+            >
+              <Info size={16} color="#8E8E93" />
+            </TouchableOpacity>
           </View>
           <Switch
             value={showConfidence}
@@ -142,12 +158,23 @@ export default function SettingsScreen() {
 
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
+            <View style={styles.iconContainer}>
+              <Shield size={20} color="#007AFF" />
+            </View>
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>Show Keypoints</Text>
               <Text style={styles.settingDescription}>
                 Display individual body keypoints and skeleton
               </Text>
             </View>
+          </View>
+          <View style={styles.settingControls}>
+            <TouchableOpacity 
+              style={styles.infoButton} 
+              onPress={() => showFeatureInfo('display')}
+            >
+              <Info size={16} color="#8E8E93" />
+            </TouchableOpacity>
           </View>
           <Switch
             value={showKeypoints}

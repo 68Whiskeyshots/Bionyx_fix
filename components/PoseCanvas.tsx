@@ -47,6 +47,9 @@ const PoseCanvas: React.FC<PoseCanvasProps> = ({
   const renderPose = (pose: Pose, index: number) => {
     const elements = [];
     
+    // Add pose detection confidence indicator
+    const avgConfidence = pose.keypoints.reduce((sum, kp) => sum + kp.score, 0) / pose.keypoints.length;
+    
     // Draw skeleton connections
     connections.forEach(([startIdx, endIdx], connIdx) => {
       const startPoint = pose.keypoints[startIdx];
@@ -75,21 +78,22 @@ const PoseCanvas: React.FC<PoseCanvasProps> = ({
         if (keypoint.score > 0.4) {
           // Different colors for different body parts
           let pointColor = '#007AFF';
-          if (keypointIdx <= 4) pointColor = '#FF6B6B'; // Head - red
-          else if (keypointIdx <= 6) pointColor = '#4ECDC4'; // Shoulders - teal
-          else if (keypointIdx <= 10) pointColor = '#45B7D1'; // Arms - blue
-          else if (keypointIdx <= 12) pointColor = '#96CEB4'; // Hips - green
-          else pointColor = '#FFEAA7'; // Legs - yellow
+          if (keypointIdx <= 4) pointColor = '#FF3B30'; // Head - red
+          else if (keypointIdx <= 6) pointColor = '#30D158'; // Shoulders - green
+          else if (keypointIdx <= 10) pointColor = '#007AFF'; // Arms - blue
+          else if (keypointIdx <= 12) pointColor = '#FF9500'; // Hips - orange
+          else pointColor = '#AF52DE'; // Legs - purple
           
           elements.push(
             <Circle
               key={`keypoint-${index}-${keypointIdx}`}
               cx={keypoint.x}
               cy={keypoint.y}
-              r="6"
+              r={keypoint.score > 0.7 ? "8" : "6"}
               fill={pointColor}
               stroke="#fff"
-              strokeWidth="3"
+              strokeWidth={keypoint.score > 0.7 ? "3" : "2"}
+              opacity={keypoint.score}
             />
           );
           
@@ -112,6 +116,24 @@ const PoseCanvas: React.FC<PoseCanvasProps> = ({
           }
         }
       });
+    }
+    
+    // Add overall confidence indicator
+    if (avgConfidence > 0.5) {
+      elements.push(
+        <SvgText
+          key={`overall-confidence-${index}`}
+          x="20"
+          y="40"
+          fontSize="16"
+          fill={avgConfidence > 0.7 ? "#30D158" : "#FF9500"}
+          stroke="#000"
+          strokeWidth="1"
+          fontWeight="bold"
+        >
+          {Math.round(avgConfidence * 100)}% confidence
+        </SvgText>
+      );
     }
     
     return elements;

@@ -18,6 +18,7 @@ export default function CameraScreen() {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownDuration, setCountdownDuration] = useState(3);
   const [showCountdownSelector, setShowCountdownSelector] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [cameraLayout, setCameraLayout] = useState({ 
     width: screenWidth, 
     height: screenHeight 
@@ -32,6 +33,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const analysisInterval = useRef<NodeJS.Timeout>();
   const countdownInterval = useRef<NodeJS.Timeout>();
+  const recordingTimer = useRef<NodeJS.Timeout>();
   const frameCountRef = useRef(0);
   const startTimeRef = useRef(Date.now());
 
@@ -124,6 +126,12 @@ export default function CameraScreen() {
   const startRecording = async () => {
     if (!cameraRef.current) return;
 
+    // Start recording duration timer
+    setRecordingDuration(0);
+    recordingTimer.current = setInterval(() => {
+      setRecordingDuration(prev => prev + 1);
+    }, 1000);
+
     // Check media library permissions for saving video (always save videos)
     if (Platform.OS !== 'web' && !mediaLibraryPermission?.granted) {
       const { granted } = await requestMediaLibraryPermission();
@@ -167,6 +175,11 @@ export default function CameraScreen() {
     } finally {
       setIsRecording(false);
       setIsAnalyzing(false);
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+        recordingTimer.current = undefined;
+      }
+      setRecordingDuration(0);
     }
   };
 
@@ -176,6 +189,10 @@ export default function CameraScreen() {
     try {
       await cameraRef.current.stopRecording();
       console.log('Recording stopped');
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+        recordingTimer.current = undefined;
+      }
     } catch (err) {
       console.error('Failed to stop recording:', err);
     }
@@ -226,6 +243,12 @@ export default function CameraScreen() {
   const selectCountdownDuration = (duration: number) => {
     setCountdownDuration(duration);
     setShowCountdownSelector(false);
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getButtonIcon = () => {
@@ -318,7 +341,7 @@ export default function CameraScreen() {
       {isRecording && (
         <View style={styles.recordingIndicator}>
           <View style={styles.recordingDot} />
-          <Text style={styles.recordingText}>REC</Text>
+          <Text style={styles.recordingText}>REC {formatRecordingTime(recordingDuration)}</Text>
         </View>
       )}
       
@@ -388,6 +411,20 @@ export default function CameraScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+        </View>
+      )}
+      
+      {/* Instructions overlay for first-time users */}
+      {!isRecording && !showCountdown && !isAnalyzing && poses.length === 0 && (
+        <View style={styles.instructionsOverlay}>
+          <View style={styles.instructionsContainer}>
+            <Text style={styles.instructionsTitle}>Ready to detect poses!</Text>
+            <Text style={styles.instructionsText}>
+              • Tap countdown bubble to set timer{'\n'}
+              • Tap play button to start recording{'\n'}
+              • Stand in view for best results
+            </Text>
           </View>
         </View>
       )}
@@ -645,5 +682,31 @@ const styles = StyleSheet.create({
   },
   countdownOptionTextActive: {
     color: '#fff',
+  },
+  instructionsOverlay: {
+    position: 'absolute',
+    top: '30%',
+    left: 20,
+    right: 20,
+    zIndex: 5,
+  },
+  instructionsContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  instructionsTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  instructionsText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });
