@@ -13,7 +13,13 @@ interface PoseCanvasProps {
   showKeypoints?: boolean;
 }
 
-const PoseCanvas: React.FC<PoseCanvasProps> = ({ poses, cameraFacing = 'back', cameraLayout, showConfidence = false, showKeypoints = true }) => {
+const PoseCanvas: React.FC<PoseCanvasProps> = ({ 
+  poses, 
+  cameraFacing = 'back', 
+  cameraLayout = { width: screenWidth, height: screenHeight }, 
+  showConfidence = false, 
+  showKeypoints = true 
+}) => {
   // MoveNet keypoint connections for drawing skeleton
   const connections = [
     // Head connections

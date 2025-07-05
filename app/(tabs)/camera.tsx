@@ -11,7 +11,10 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [cameraLayout, setCameraLayout] = useState({ width: screenWidth, height: screenHeight });
+  const [cameraLayout, setCameraLayout] = useState({ 
+    width: screenWidth, 
+    height: screenHeight 
+  });
   const [stats, setStats] = useState({
     fps: 0,
     frameCount: 0,
@@ -169,6 +172,7 @@ export default function CameraScreen() {
         mode="picture"
         onLayout={(event) => {
           const { width, height } = event.nativeEvent.layout;
+          console.log('Camera layout:', { width, height, facing });
           setCameraLayout({ width, height });
         }}
       >
