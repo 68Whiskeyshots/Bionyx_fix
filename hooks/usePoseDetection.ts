@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-platform-react-native';
+// CRITICAL: Only use @tensorflow/tfjs-react-native (not @tensorflow/tfjs-platform-react-native)
+import '@tensorflow/tfjs-react-native';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import { Pose } from '@/types/pose';
 

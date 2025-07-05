@@ -3,16 +3,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+// CRITICAL: Only use @tensorflow/tfjs-react-native (not @tensorflow/tfjs-platform-react-native)
+import '@tensorflow/tfjs-react-native';
 
 export default function RootLayout() {
   useFrameworkReady();
 
-  useEffect(() => {
-    // Initialize TensorFlow.js platform for React Native
-    if (Platform.OS !== 'web') {
-      require('@tensorflow/tfjs-platform-react-native');
-    }
-  }, []);
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
