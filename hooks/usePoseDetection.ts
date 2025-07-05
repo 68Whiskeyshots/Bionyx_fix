@@ -64,7 +64,11 @@ export function usePoseDetection() {
     }
   }, [isInitialized]);
 
-  const detectPosesFromUri = useCallback(async (imageUri: string) => {
+  const detectPosesFromUri = useCallback(async (
+    imageUri: string, 
+    cameraFacing: 'front' | 'back' = 'back',
+    cameraLayout: { width: number; height: number } = { width: screenWidth, height: screenHeight }
+  ) => {
     if (!detectorRef.current || isProcessingRef.current) {
       return;
     }
@@ -123,13 +127,15 @@ export function usePoseDetection() {
       
       // Calculate scaling factors for coordinate transformation
       // The model processes images at various sizes, but we need to scale back to camera view
-      const scaleX = screenWidth / originalWidth;
-      const scaleY = screenHeight / originalHeight;
+      const scaleX = cameraLayout.width / originalWidth;
+      const scaleY = cameraLayout.height / originalHeight;
       
       // Convert to our pose format with proper coordinate transformation
       const convertedPoses: Pose[] = detectedPoses.map(pose => ({
         keypoints: pose.keypoints.map(kp => ({
-          x: kp.x * scaleX, // Scale X coordinate to screen width
+          x: cameraFacing === 'front' 
+            ? cameraLayout.width - (kp.x * scaleX) // Mirror X for front camera
+            : kp.x * scaleX, // Normal X for back camera
           y: kp.y * scaleY, // Scale Y coordinate to screen height
           score: kp.score || 0,
           name: kp.name || 'unknown',

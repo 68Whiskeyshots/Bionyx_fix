@@ -7,11 +7,12 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface PoseCanvasProps {
   poses: Pose[];
+  cameraFacing?: 'front' | 'back';
+  cameraLayout?: { width: number; height: number };
   showConfidence?: boolean;
   showKeypoints?: boolean;
 }
 
-export function PoseCanvas({ poses, showConfidence = true, showKeypoints = true }: PoseCanvasProps) {
   // MoveNet keypoint connections for drawing skeleton
   const connections = [
     // Head connections

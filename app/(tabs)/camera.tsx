@@ -11,6 +11,7 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [cameraLayout, setCameraLayout] = useState({ width: screenWidth, height: screenHeight });
   const [stats, setStats] = useState({
     fps: 0,
     frameCount: 0,
@@ -66,7 +67,7 @@ export default function CameraScreen() {
           });
           
           if (photo?.uri) {
-            await detectPosesFromUri(photo.uri);
+            await detectPosesFromUri(photo.uri, facing, cameraLayout);
             frameCountRef.current++;
           }
         } catch (err) {
@@ -166,11 +167,15 @@ export default function CameraScreen() {
         style={styles.camera}
         facing={facing}
         mode="picture"
+        onLayout={(event) => {
+          const { width, height } = event.nativeEvent.layout;
+          setCameraLayout({ width, height });
+        }}
       >
       </CameraView>
       
       {/* Pose visualization overlay - positioned outside CameraView */}
-      <PoseCanvas poses={poses} />
+      <PoseCanvas poses={poses} cameraFacing={facing} cameraLayout={cameraLayout} />
       
       {/* Stats overlay */}
       <View style={styles.statsContainer}>
