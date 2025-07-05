@@ -13,6 +13,7 @@ interface PoseCanvasProps {
   showKeypoints?: boolean;
 }
 
+const PoseCanvas: React.FC<PoseCanvasProps> = ({ poses, cameraFacing = 'back', cameraLayout, showConfidence = false, showKeypoints = true }) => {
   // MoveNet keypoint connections for drawing skeleton
   const connections = [
     // Head connections
@@ -125,7 +126,7 @@ interface PoseCanvasProps {
       </Svg>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -142,3 +143,5 @@ const styles = StyleSheet.create({
     left: 0,
   },
 });
+
+export default PoseCanvas;
