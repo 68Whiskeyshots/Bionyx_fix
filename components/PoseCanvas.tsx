@@ -117,8 +117,8 @@ interface PoseCanvasProps {
   return (
     <View style={styles.container}>
       <Svg
-        width={screenWidth}
-        height={screenHeight}
+        width={cameraLayout.width}
+        height={cameraLayout.height}
         style={styles.svg}
       >
         {poses.map((pose, index) => renderPose(pose, index))}
