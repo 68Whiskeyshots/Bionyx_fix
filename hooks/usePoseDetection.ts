@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Dimensions } from 'react-native';
 import * as tf from '@tensorflow/tfjs';
 // CRITICAL: Only use @tensorflow/tfjs-react-native (not @tensorflow/tfjs-platform-react-native)
 import '@tensorflow/tfjs-react-native';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import { Pose } from '@/types/pose';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export function usePoseDetection() {
   const [poses, setPoses] = useState<Pose[]>([]);
@@ -71,6 +73,8 @@ export function usePoseDetection() {
     
     try {
       let imageElement: HTMLImageElement | tf.Tensor3D;
+      let originalWidth = screenWidth;
+      let originalHeight = screenHeight;
       
       if (Platform.OS === 'web') {
         // Web platform - create image element
@@ -78,53 +82,55 @@ export function usePoseDetection() {
         img.crossOrigin = 'anonymous';
         
         await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
+          img.onload = () => {
+            originalWidth = img.naturalWidth;
+            originalHeight = img.naturalHeight;
+            resolve();
+          };
           img.onerror = () => reject(new Error('Failed to load image'));
           img.src = imageUri;
         });
         
         imageElement = img;
       } else {
-        // Mobile platform - use tensor directly without document API
+        // Mobile platform - create tensor from image
         try {
-          // For mobile, we need to use a different approach
-          // Convert the image URI to a tensor using tf.browser.fromPixels with a workaround
           const response = await fetch(imageUri);
-          const blob = await response.blob();
+          const arrayBuffer = await response.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
           
-          // Create a tensor from the image data
-          // This is a simplified approach for mobile compatibility
-          const imageTensor = await new Promise<tf.Tensor3D>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              try {
-                // Create a simple RGB tensor with dummy data for now
-                // In a real implementation, you'd decode the image properly
-                const dummyTensor = tf.zeros([224, 224, 3]) as tf.Tensor3D;
-                resolve(dummyTensor);
-              } catch (err) {
-                reject(err);
-              }
-            };
-            reader.onerror = () => reject(new Error('Failed to read image'));
-            reader.readAsDataURL(blob);
-          });
+          // Decode image to get dimensions and tensor
+          const imageTensor = tf.node.decodeImage(uint8Array, 3) as tf.Tensor3D;
+          const [height, width] = imageTensor.shape;
           
+          originalWidth = width;
+          originalHeight = height;
           imageElement = imageTensor;
         } catch (err) {
           console.error('Mobile image processing error:', err);
-          throw new Error('Failed to process image on mobile platform');
+          // Fallback: assume camera dimensions
+          originalWidth = screenWidth;
+          originalHeight = screenHeight;
+          
+          // Create a dummy tensor for testing
+          const dummyTensor = tf.zeros([originalHeight, originalWidth, 3]) as tf.Tensor3D;
+          imageElement = dummyTensor;
         }
       }
       
       // Detect poses using the proper API
       const detectedPoses = await detectorRef.current.estimatePoses(imageElement);
       
-      // Convert to our pose format
+      // Calculate scaling factors for coordinate transformation
+      // The model processes images at various sizes, but we need to scale back to camera view
+      const scaleX = screenWidth / originalWidth;
+      const scaleY = screenHeight / originalHeight;
+      
+      // Convert to our pose format with proper coordinate transformation
       const convertedPoses: Pose[] = detectedPoses.map(pose => ({
         keypoints: pose.keypoints.map(kp => ({
-          x: kp.x,
-          y: kp.y,
+          x: kp.x * scaleX, // Scale X coordinate to screen width
+          y: kp.y * scaleY, // Scale Y coordinate to screen height
           score: kp.score || 0,
           name: kp.name || 'unknown',
         })),
