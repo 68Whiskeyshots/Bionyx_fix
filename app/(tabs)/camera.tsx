@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Camera, RotateCcw, Play, Pause, Activity } from 'lucide-react-native';
 import { usePoseDetection } from '@/hooks/usePoseDetection';
-import { PoseCanvas } from '@/components/PoseCanvas';
+import PoseCanvas from '@/components/PoseCanvas';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
