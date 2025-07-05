@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Link } from 'expo-router';
 import { Settings } from 'lucide-react-native';
-import Logo from '@/assets/images/logo.svg';
 import { COLORS } from '@/constants/colors';
 
 const quickActions = [
@@ -22,7 +21,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Top App Bar */}
       <View style={styles.appBar}>
-        <Logo width={32} height={32} />
+        <Image source={require('@/assets/images/icon.png')} style={{ width: 32, height: 32 }} />
         <Text style={styles.appBarTitle}>BIONYX</Text>
         <Link href="/settings" asChild>
           <TouchableOpacity>
@@ -75,7 +74,7 @@ export default function HomeScreen() {
         <View style={styles.actionSection}>
           <Link href="/camera" asChild>
             <TouchableOpacity style={styles.analyzeButton}>
-              <Text style={styles.analyzeButtonText}>📹 Start Analysis</Text>
+              <Text style={styles.analyzeButtonText}>🔍 Start Analysis</Text>
             </TouchableOpacity>
           </Link>
         </View>

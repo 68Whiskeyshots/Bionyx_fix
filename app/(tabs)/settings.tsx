@@ -1,25 +1,18 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useState } from 'react';
-import { Settings, Info, Zap, Shield, Smartphone, Video, Timer, Save, Play } from 'lucide-react-native';
+import { Settings, Info, Zap, Shield, Smartphone, Activity } from 'lucide-react-native';
 import { COLORS } from '@/constants/colors';
 
 export default function SettingsScreen() {
   const [highPerformanceMode, setHighPerformanceMode] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
   const [showKeypoints, setShowKeypoints] = useState(true);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
 
   const showFeatureInfo = (feature: string) => {
     let message = '';
     switch (feature) {
-      case 'countdown':
-        message = 'Countdown timer gives you time to get into position before recording starts. Tap the countdown bubble on the camera screen to adjust duration or disable it.';
-        break;
-      case 'autosave':
-        message = 'Recorded videos are automatically saved to your device\'s photo library. Requires media library permissions.';
-        break;
       case 'performance':
-        message = 'High performance mode increases processing speed but uses more battery. Recommended for longer recording sessions.';
+        message = 'High performance mode increases processing speed but uses more battery. Recommended for longer analysis sessions.';
         break;
       case 'display':
         message = 'Customize how pose detection results are displayed on screen. Higher confidence keypoints appear larger and more opaque.';
@@ -39,56 +32,14 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recording</Text>
+        <Text style={styles.sectionTitle}>Pose Detection</Text>
         
         <View style={styles.infoCard}>
-          <Timer size={24} color={COLORS.primaryBrandBlue} />
+          <Activity size={24} color={COLORS.primaryBrandBlue} />
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Countdown Timer</Text>
+            <Text style={styles.infoTitle}>Real-time Analysis</Text>
             <Text style={styles.infoText}>
-              Tap the countdown bubble on the camera screen to select duration (0, 3, 5, 15, or 30 seconds). 
-              Set to "OFF" for immediate recording.
-            </Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.infoButton} 
-            onPress={() => showFeatureInfo('countdown')}
-          >
-            <Info size={16} color="#8E8E93" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoCard}>
-          <Save size={24} color={COLORS.primaryBrandBlue} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Auto-Save Videos</Text>
-            <Text style={styles.infoText}>
-              All recorded videos are automatically saved to your device's photo library.
-            </Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.infoButton} 
-            onPress={() => showFeatureInfo('autosave')}
-          >
-            <Info size={16} color="#8E8E93" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Camera Controls</Text>
-        
-        <View style={styles.infoCard}>
-          <View style={styles.iconContainer}>
-            <Play size={20} color={COLORS.primaryBrandBlue} />
-          </View>
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Recording Controls</Text>
-            <Text style={styles.infoText}>
-              • Play button: Start countdown/recording{'\n'}
-              • Square button: Stop recording{'\n'}
-              • Countdown bubble: Select timer duration{'\n'}
-              • Flip button: Switch camera
+              BIONYX analyzes poses in real-time at 5 FPS. Simply tap the play button to start analysis.
             </Text>
           </View>
         </View>
@@ -112,7 +63,7 @@ export default function SettingsScreen() {
               style={styles.infoButton} 
               onPress={() => showFeatureInfo('performance')}
             >
-              <Info size={16} color="#8E8E93" />
+              <Info size={16} color={COLORS.textSecondary} />
             </TouchableOpacity>
             <Switch
               value={highPerformanceMode}
@@ -129,9 +80,7 @@ export default function SettingsScreen() {
         
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
-            <View style={styles.iconContainer}>
-              <Info size={20} color={COLORS.primaryBrandBlue} />
-            </View>
+            <Info size={20} color={COLORS.primaryBrandBlue} />
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>Show Confidence Scores</Text>
               <Text style={styles.settingDescription}>
@@ -144,22 +93,20 @@ export default function SettingsScreen() {
               style={styles.infoButton} 
               onPress={() => showFeatureInfo('display')}
             >
-              <Info size={16} color="#8E8E93" />
+              <Info size={16} color={COLORS.textSecondary} />
             </TouchableOpacity>
+            <Switch
+              value={showConfidence}
+              onValueChange={setShowConfidence}
+              trackColor={{ false: '#767577', true: COLORS.primaryBrandBlue }}
+              thumbColor={showConfidence ? '#fff' : '#f4f3f4'}
+            />
           </View>
-          <Switch
-            value={showConfidence}
-            onValueChange={setShowConfidence}
-            trackColor={{ false: '#767577', true: '#007AFF' }}
-            thumbColor={showConfidence ? '#fff' : '#f4f3f4'}
-          />
         </View>
 
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
-            <View style={styles.iconContainer}>
-              <Shield size={20} color={COLORS.primaryBrandBlue} />
-            </View>
+            <Shield size={20} color={COLORS.primaryBrandBlue} />
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>Show Keypoints</Text>
               <Text style={styles.settingDescription}>
@@ -172,48 +119,14 @@ export default function SettingsScreen() {
               style={styles.infoButton} 
               onPress={() => showFeatureInfo('display')}
             >
-              <Info size={16} color="#8E8E93" />
+              <Info size={16} color={COLORS.textSecondary} />
             </TouchableOpacity>
-          </View>
-          <Switch
-            value={showKeypoints}
-            onValueChange={setShowKeypoints}
-            trackColor={{ false: '#767577', true: '#007AFF' }}
-            thumbColor={showKeypoints ? '#fff' : '#f4f3f4'}
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Video Recording</Text>
-        
-        <View style={styles.infoCard}>
-          <Video size={24} color={COLORS.primaryBrandBlue} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Recording Features</Text>
-            <Text style={styles.infoText}>
-              Record your pose detection sessions with optional countdown timer. 
-              Videos are saved in 720p quality with pose overlays included.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.featuresList}>
-          <View style={styles.featureItem}>
-            <Timer size={16} color="#34C759" />
-            <Text style={styles.featureText}>Customizable countdown timer (0-30 seconds)</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Save size={16} color="#34C759" />
-            <Text style={styles.featureText}>Auto-save to photo library</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Video size={16} color="#34C759" />
-            <Text style={styles.featureText}>720p HD video quality</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Zap size={16} color="#34C759" />
-            <Text style={styles.featureText}>Real-time pose overlay during recording</Text>
+            <Switch
+              value={showKeypoints}
+              onValueChange={setShowKeypoints}
+              trackColor={{ false: '#767577', true: COLORS.primaryBrandBlue }}
+              thumbColor={showKeypoints ? '#fff' : '#f4f3f4'}
+            />
           </View>
         </View>
       </View>
@@ -226,7 +139,7 @@ export default function SettingsScreen() {
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>TensorFlow.js Pose Detection</Text>
             <Text style={styles.infoText}>
-              This app uses TensorFlow.js MoveNet model to detect human poses in real-time.
+              BIONYX uses TensorFlow.js MoveNet model to detect human poses in real-time.
               All processing happens on your device for maximum privacy.
             </Text>
           </View>
@@ -354,19 +267,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     lineHeight: 20,
-  },
-  featuresList: {
-    paddingHorizontal: 20,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  featureText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
   },
   specsList: {
     paddingHorizontal: 20,
