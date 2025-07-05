@@ -1,8 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useState } from 'react';
-import { Settings, Info, Zap, Shield, Smartphone, Video, Timer, Save } from 'lucide-react-native';
-
-import { Play } from 'lucide-react-native';
+import { Settings, Info, Zap, Shield, Smartphone, Video, Timer, Save, Play } from 'lucide-react-native';
+import { COLORS } from '@/constants/colors';
 
 export default function SettingsScreen() {
   const [highPerformanceMode, setHighPerformanceMode] = useState(false);
@@ -35,7 +34,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Settings size={32} color="#007AFF" />
+        <Settings size={32} color={COLORS.primaryBrandBlue} />
         <Text style={styles.title}>Settings</Text>
       </View>
 
@@ -43,7 +42,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Recording</Text>
         
         <View style={styles.infoCard}>
-          <Timer size={24} color="#007AFF" />
+          <Timer size={24} color={COLORS.primaryBrandBlue} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Countdown Timer</Text>
             <Text style={styles.infoText}>
@@ -60,7 +59,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <Save size={24} color="#007AFF" />
+          <Save size={24} color={COLORS.primaryBrandBlue} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Auto-Save Videos</Text>
             <Text style={styles.infoText}>
@@ -81,7 +80,7 @@ export default function SettingsScreen() {
         
         <View style={styles.infoCard}>
           <View style={styles.iconContainer}>
-            <Play size={20} color="#007AFF" />
+            <Play size={20} color={COLORS.primaryBrandBlue} />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Recording Controls</Text>
@@ -100,7 +99,7 @@ export default function SettingsScreen() {
         
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
-            <Zap size={20} color="#007AFF" />
+            <Zap size={20} color={COLORS.primaryBrandBlue} />
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>High Performance Mode</Text>
               <Text style={styles.settingDescription}>
@@ -118,7 +117,7 @@ export default function SettingsScreen() {
             <Switch
               value={highPerformanceMode}
               onValueChange={setHighPerformanceMode}
-              trackColor={{ false: '#767577', true: '#007AFF' }}
+              trackColor={{ false: '#767577', true: COLORS.primaryBrandBlue }}
               thumbColor={highPerformanceMode ? '#fff' : '#f4f3f4'}
             />
           </View>
@@ -131,7 +130,7 @@ export default function SettingsScreen() {
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
             <View style={styles.iconContainer}>
-              <Info size={20} color="#007AFF" />
+              <Info size={20} color={COLORS.primaryBrandBlue} />
             </View>
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>Show Confidence Scores</Text>
@@ -159,7 +158,7 @@ export default function SettingsScreen() {
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
             <View style={styles.iconContainer}>
-              <Shield size={20} color="#007AFF" />
+              <Shield size={20} color={COLORS.primaryBrandBlue} />
             </View>
             <View style={styles.settingText}>
               <Text style={styles.settingLabel}>Show Keypoints</Text>
@@ -189,7 +188,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Video Recording</Text>
         
         <View style={styles.infoCard}>
-          <Video size={24} color="#007AFF" />
+          <Video size={24} color={COLORS.primaryBrandBlue} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Recording Features</Text>
             <Text style={styles.infoText}>
@@ -223,7 +222,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>About</Text>
         
         <View style={styles.infoCard}>
-          <Info size={24} color="#007AFF" />
+          <Info size={24} color={COLORS.primaryBrandBlue} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>TensorFlow.js Pose Detection</Text>
             <Text style={styles.infoText}>
@@ -251,9 +250,10 @@ export default function SettingsScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Built with React Native & TensorFlow.js
+          BIONYX by Dark Matter Labs
         </Text>
         <Text style={styles.footerVersion}>Version 1.0.0</Text>
+        <Text style={styles.footerVersion}>© 2025 Dark Matter Labs. All Rights Reserved.</Text>
       </View>
     </ScrollView>
   );
@@ -262,7 +262,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingTop: 60,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLORS.textPrimary,
   },
   section: {
     marginBottom: 32,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.textPrimary,
     marginBottom: 16,
     paddingHorizontal: 20,
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: COLORS.cardBg,
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 12,
@@ -309,12 +309,12 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#fff',
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
     lineHeight: 18,
   },
   settingControls: {
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoCard: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: COLORS.cardBg,
     marginHorizontal: 20,
     borderRadius: 12,
     padding: 16,
@@ -347,12 +347,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
     lineHeight: 20,
   },
   featuresList: {
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
   },
   specsList: {
     paddingHorizontal: 20,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
   specText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
   },
   footer: {
     paddingHorizontal: 20,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 4,
   },

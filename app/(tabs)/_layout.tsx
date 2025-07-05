@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Camera, Chrome as Home, Settings } from 'lucide-react-native';
+import { Home, Camera, TrendingUp, Settings } from 'lucide-react-native';
+import { COLORS } from '@/constants/colors';
 
 export default function TabLayout() {
   return (
@@ -7,14 +8,14 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#000',
+          backgroundColor: COLORS.background,
           borderTopWidth: 0,
           paddingBottom: 10,
           paddingTop: 10,
           height: 80,
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: COLORS.accentTeal,
+        tabBarInactiveTintColor: COLORS.textSecondary,
       }}>
       <Tabs.Screen
         name="index"
@@ -28,9 +29,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="camera"
         options={{
-          title: 'BIONYX',
+          title: 'Analyze',
           tabBarIcon: ({ size, color }) => (
             <Camera size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ size, color }) => (
+            <TrendingUp size={size} color={color} />
           ),
         }}
       />

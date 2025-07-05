@@ -1,172 +1,218 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Link } from 'expo-router';
-import { Camera, Zap, Smartphone, Shield } from 'lucide-react-native';
+import { Settings } from 'lucide-react-native';
 import Logo from '@/assets/images/logo.svg';
+import { COLORS } from '@/constants/colors';
+
+const quickActions = [
+  { id: '1', emoji: '🏃', title: 'Running', subtitle: 'Analyze your sprint' },
+  { id: '2', emoji: '⚽', title: 'Soccer', subtitle: 'Track ball control' },
+  { id: '3', emoji: '🏋️‍♀️', title: 'Weightlifting', subtitle: 'Check your form' },
+  { id: '4', emoji: '🏈', title: 'Throws', subtitle: 'Perfect your technique' },
+];
+
+const recentSessions = [
+  { id: '1', title: 'Last Sprint', date: 'Jul 8', metrics: '4.8 m/s peak • 0.19 s contact' },
+  { id: '2', title: 'Morning Workout', date: 'Jul 7', metrics: '12 reps • 95% form accuracy' },
+  { id: '3', title: 'Soccer Practice', date: 'Jul 6', metrics: '87% ball control • 23 touches' },
+];
 
 export default function HomeScreen() {
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Logo width={120} height={120} style={styles.logo} />
-        <Text style={styles.title}>BIONYX</Text>
-        <Text style={styles.subtitle}>Real-time pose analysis on mobile</Text>
-        <Text style={styles.copyright}>© 2025 Dark Matter Labs. All Rights Reserved.</Text>
-      </View>
-
-      <View style={styles.featuresContainer}>
-        <View style={styles.feature}>
-          <View style={styles.iconContainer}>
-            <Zap size={32} color="#007AFF" />
-          </View>
-          <Text style={styles.featureTitle}>Real-time Processing</Text>
-          <Text style={styles.featureDescription}>
-            Analyze poses at 3-5 FPS on mobile devices
-          </Text>
-        </View>
-
-        <View style={styles.feature}>
-          <View style={styles.iconContainer}>
-            <Smartphone size={32} color="#007AFF" />
-          </View>
-          <Text style={styles.featureTitle}>Mobile Optimized</Text>
-          <Text style={styles.featureDescription}>
-            Works perfectly in Expo Go without ejecting
-          </Text>
-        </View>
-
-        <View style={styles.feature}>
-          <View style={styles.iconContainer}>
-            <Shield size={32} color="#007AFF" />
-          </View>
-          <Text style={styles.featureTitle}>Privacy First</Text>
-          <Text style={styles.featureDescription}>
-            All processing happens on-device
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.actionContainer}>
-        <Link href="/camera" asChild>
-          <TouchableOpacity style={styles.startButton}>
-            <Camera size={20} color="#fff" />
-            <Text style={styles.startButtonText}>Start Pose Detection</Text>
+    <View style={styles.container}>
+      {/* Top App Bar */}
+      <View style={styles.appBar}>
+        <Logo width={32} height={32} />
+        <Text style={styles.appBarTitle}>BIONYX</Text>
+        <Link href="/settings" asChild>
+          <TouchableOpacity>
+            <Settings size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </Link>
       </View>
 
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoTitle}>How it works</Text>
-        <Text style={styles.infoText}>
-          This app uses TensorFlow.js to detect human poses in real-time using your device's camera.
-          The AI model runs entirely on your device, ensuring privacy and security.
-        </Text>
-        <Text style={styles.infoText}>
-          • Detects 17 key body points
-          • Real-time confidence scoring
-          • Cross-platform compatibility
-          • Memory efficient processing
-        </Text>
-      </View>
-    </ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+        {/* Quick Action Grid */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionGrid}>
+            {quickActions.map((action) => (
+              <TouchableOpacity key={action.id} style={styles.quickActionCard}>
+                <Text style={styles.quickActionEmoji}>{action.emoji}</Text>
+                <Text style={styles.quickActionTitle}>{action.title}</Text>
+                <Text style={styles.quickActionSubtitle}>{action.subtitle}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Recent Sessions Carousel */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Sessions</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carousel}
+          >
+            {recentSessions.map((session) => (
+              <TouchableOpacity key={session.id} style={styles.sessionCard}>
+                <Text style={styles.sessionTitle}>{session.title} • {session.date}</Text>
+                <Text style={styles.sessionMetrics}>{session.metrics}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Tip of the Day */}
+        <TouchableOpacity style={styles.tipBanner}>
+          <Text style={styles.tipHeader}>💡 Tip of the Day</Text>
+          <Text style={styles.tipBody}>
+            Keep your core engaged during sprints to maintain better posture and reduce injury risk.
+          </Text>
+        </TouchableOpacity>
+
+        {/* Start Analysis Button */}
+        <View style={styles.actionSection}>
+          <Link href="/camera" asChild>
+            <TouchableOpacity style={styles.analyzeButton}>
+              <Text style={styles.analyzeButtonText}>📹 Start Analysis</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        {/* Copyright */}
+        <Text style={styles.copyright}>© 2025 Dark Matter Labs. All Rights Reserved.</Text>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.background,
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+  appBar: {
+    height: 56,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+    marginTop: 44, // For safe area
   },
-  logo: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 32,
+  appBarTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
+    color: COLORS.textPrimary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    marginVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  quickActionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+  },
+  quickActionCard: {
+    width: '48%',
+    margin: '1%',
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.cardBg,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickActionEmoji: {
+    fontSize: 32,
     marginBottom: 8,
   },
-  subtitle: {
+  quickActionTitle: {
     fontSize: 16,
-    color: '#8E8E93',
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  carousel: {
+    paddingHorizontal: 16,
+  },
+  sessionCard: {
+    width: 200,
+    padding: 16,
+    marginRight: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.cardBg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sessionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  sessionMetrics: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  tipBanner: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.primaryBrandBlue,
+  },
+  tipHeader: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  tipBody: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    lineHeight: 20,
+  },
+  actionSection: {
+    paddingHorizontal: 16,
+    marginVertical: 24,
+  },
+  analyzeButton: {
+    backgroundColor: COLORS.accentTeal,
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+  },
+  analyzeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.background,
   },
   copyright: {
     fontSize: 12,
-    color: '#6E6E73',
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
-  },
-  featuresContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  feature: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  actionContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  startButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  startButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  infoContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-    marginBottom: 12,
+    marginVertical: 24,
   },
 });

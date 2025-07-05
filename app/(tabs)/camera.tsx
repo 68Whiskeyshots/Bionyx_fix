@@ -5,6 +5,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { Camera, RotateCcw, Play, Pause, Activity, Video, Square } from 'lucide-react-native';
 import { usePoseDetection } from '@/hooks/usePoseDetection';
 import PoseCanvas from '@/components/PoseCanvas';
+import { COLORS } from '@/constants/colors';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -275,7 +276,7 @@ export default function CameraScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Camera size={64} color="#007AFF" />
+          <Camera size={64} color={COLORS.primaryBrandBlue} />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
             We need access to your camera to detect poses and record videos.
@@ -292,7 +293,7 @@ export default function CameraScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Activity size={48} color="#007AFF" />
+          <Activity size={48} color={COLORS.primaryBrandBlue} />
           <Text style={styles.loadingText}>Initializing AI Model...</Text>
           <Text style={styles.loadingSubtext}>This may take a moment</Text>
         </View>
@@ -435,7 +436,7 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.background,
   },
   camera: {
     flex: 1,
@@ -447,13 +448,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   loadingText: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
   },
   loadingSubtext: {
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
     fontSize: 14,
     marginTop: 8,
   },
@@ -464,27 +465,27 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   permissionTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 24,
     fontWeight: '600',
     marginTop: 20,
     marginBottom: 12,
   },
   permissionText: {
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   permissionButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primaryBrandBlue,
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
   permissionButtonText: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primaryBrandBlue,
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -581,12 +582,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statsLabel: {
-    color: '#8E8E93',
+    color: COLORS.textSecondary,
     fontSize: 10,
     fontWeight: '500',
   },
   statsValue: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -618,7 +619,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   analyzeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primaryBrandBlue,
     borderRadius: 35,
     width: 70,
     height: 70,
@@ -646,7 +647,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   countdownSelectorContainer: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 20,
     padding: 24,
     minWidth: 280,
@@ -673,7 +674,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countdownOptionActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primaryBrandBlue,
   },
   countdownOptionText: {
     color: '#8E8E93',
