@@ -167,39 +167,40 @@ export default function CameraScreen() {
         facing={facing}
         mode="picture"
       >
-        {/* Pose visualization overlay */}
-        <PoseCanvas poses={poses} />
-        
-        {/* Stats overlay */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statsBox}>
-            <Text style={styles.statsLabel}>FPS</Text>
-            <Text style={styles.statsValue}>{stats.fps}</Text>
-          </View>
-          <View style={styles.statsBox}>
-            <Text style={styles.statsLabel}>Poses</Text>
-            <Text style={styles.statsValue}>{stats.poseCount}</Text>
-          </View>
-          <View style={styles.statsBox}>
-            <Text style={styles.statsLabel}>Confidence</Text>
-            <Text style={styles.statsValue}>{stats.avgConfidence}%</Text>
-          </View>
-        </View>
-
-        {/* Control buttons */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
-            <RotateCcw size={24} color="#fff" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonActive]} 
-            onPress={toggleAnalysis}
-          >
-            {isAnalyzing ? <Pause size={32} color="#fff" /> : <Play size={32} color="#fff" />}
-          </TouchableOpacity>
-        </View>
       </CameraView>
+      
+      {/* Pose visualization overlay - positioned outside CameraView */}
+      <PoseCanvas poses={poses} />
+      
+      {/* Stats overlay */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statsBox}>
+          <Text style={styles.statsLabel}>FPS</Text>
+          <Text style={styles.statsValue}>{stats.fps}</Text>
+        </View>
+        <View style={styles.statsBox}>
+          <Text style={styles.statsLabel}>Poses</Text>
+          <Text style={styles.statsValue}>{stats.poseCount}</Text>
+        </View>
+        <View style={styles.statsBox}>
+          <Text style={styles.statsLabel}>Confidence</Text>
+          <Text style={styles.statsValue}>{stats.avgConfidence}%</Text>
+        </View>
+      </View>
+
+      {/* Control buttons */}
+      <View style={styles.controlsContainer}>
+        <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
+          <RotateCcw size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.analyzeButton, isAnalyzing && styles.analyzeButtonActive]} 
+          onPress={toggleAnalysis}
+        >
+          {isAnalyzing ? <Pause size={32} color="#fff" /> : <Play size={32} color="#fff" />}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
