@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-platform-react-native';
+import * as poseDetection from '@tensorflow-models/pose-detection';
 import { Pose } from '@/types/pose';
 
 export function usePoseDetection() {
@@ -9,7 +11,7 @@ export function usePoseDetection() {
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  const modelRef = useRef<tf.GraphModel | null>(null);
+  const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
   const isProcessingRef = useRef(false);
 
   const initializeTensorFlow = useCallback(async () => {
@@ -21,23 +23,34 @@ export function usePoseDetection() {
     try {
       // Platform-specific initialization
       if (Platform.OS === 'web') {
-        // Web platform
+        // Web platform - use WebGL backend
         await tf.setBackend('webgl');
       } else {
-        // Mobile platform - use CPU backend for Expo Go compatibility
+        // Mobile platform - use CPU backend for better compatibility
         await tf.setBackend('cpu');
       }
       
       await tf.ready();
+      console.log('TensorFlow.js backend:', tf.getBackend());
       
-      // Load MoveNet model - use a CORS-friendly alternative URL
-      const modelUrl = 'https://storage.googleapis.com/tfjs-models/savedmodel/movenet/singlepose/lightning/4/model.json';
-      console.log('Loading MoveNet model...');
+      // Create MoveNet detector with optimized config
+      const detectorConfig = {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        enableSmoothing: true,
+        multiPoseMaxDimension: 256,
+        enableTracking: false,
+        trackerType: poseDetection.TrackerType.BoundingBox,
+      };
       
-      const model = await tf.loadGraphModel(modelUrl);
-      modelRef.current = model;
+      console.log('Loading MoveNet detector...');
+      const detector = await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        detectorConfig
+      );
       
-      console.log('Model loaded successfully');
+      detectorRef.current = detector;
+      console.log('MoveNet detector loaded successfully');
+      
       setIsInitialized(true);
       setError(null);
     } catch (err) {
@@ -49,56 +62,73 @@ export function usePoseDetection() {
   }, [isInitialized]);
 
   const detectPosesFromUri = useCallback(async (imageUri: string) => {
-    if (!modelRef.current || isProcessingRef.current) {
+    if (!detectorRef.current || isProcessingRef.current) {
       return;
     }
 
     isProcessingRef.current = true;
     
     try {
-      let imageTensor: tf.Tensor3D;
+      let imageElement: HTMLImageElement | tf.Tensor3D;
       
       if (Platform.OS === 'web') {
-        // Web platform
+        // Web platform - create image element
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
+        
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load image'));
           img.src = imageUri;
         });
         
-        imageTensor = tf.browser.fromPixels(img);
+        imageElement = img;
       } else {
-        // Mobile platform - use node.js image decoding
+        // Mobile platform - convert to tensor
         const response = await fetch(imageUri);
         const arrayBuffer = await response.arrayBuffer();
-        const imageBuffer = new Uint8Array(arrayBuffer);
+        const imageArray = new Uint8Array(arrayBuffer);
         
-        // Decode image using TensorFlow.js node utilities
-        imageTensor = tf.node.decodeImage(imageBuffer, 3) as tf.Tensor3D;
+        // Create a simple image tensor for mobile
+        // Note: This is a simplified approach - in production you'd want proper image decoding
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0);
+            resolve();
+          };
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = imageUri;
+        });
+        
+        imageElement = tf.browser.fromPixels(canvas);
       }
       
-      // Preprocess image for MoveNet
-      const resized = tf.image.resizeBilinear(imageTensor, [192, 192]);
-      const normalized = resized.div(255.0);
-      const batched = normalized.expandDims(0);
+      // Detect poses using the proper API
+      const detectedPoses = await detectorRef.current.estimatePoses(imageElement);
       
-      // Run inference
-      const predictions = modelRef.current.predict(batched) as tf.Tensor;
-      const predictionData = await predictions.data();
+      // Convert to our pose format
+      const convertedPoses: Pose[] = detectedPoses.map(pose => ({
+        keypoints: pose.keypoints.map(kp => ({
+          x: kp.x,
+          y: kp.y,
+          score: kp.score || 0,
+          name: kp.name || 'unknown',
+        })),
+        score: pose.score || 0,
+      }));
       
-      // Parse MoveNet output
-      const poses = parseMoveNetOutput(predictionData, 192, 192);
+      setPoses(convertedPoses);
       
-      setPoses(poses);
-      
-      // Cleanup tensors
-      imageTensor.dispose();
-      resized.dispose();
-      normalized.dispose();
-      batched.dispose();
-      predictions.dispose();
+      // Cleanup tensor if created
+      if (Platform.OS !== 'web' && imageElement instanceof tf.Tensor) {
+        imageElement.dispose();
+      }
       
     } catch (err) {
       console.error('Error detecting poses:', err);
@@ -108,54 +138,10 @@ export function usePoseDetection() {
     }
   }, []);
 
-  const parseMoveNetOutput = (data: Float32Array, width: number, height: number): Pose[] => {
-    const poses: Pose[] = [];
-    const numKeypoints = 17;
-    
-    // MoveNet outputs keypoints in format [y, x, confidence]
-    const keypoints = [];
-    for (let i = 0; i < numKeypoints; i++) {
-      const y = data[i * 3];
-      const x = data[i * 3 + 1];
-      const confidence = data[i * 3 + 2];
-      
-      keypoints.push({
-        x: x * width,
-        y: y * height,
-        score: confidence,
-        name: getKeypointName(i),
-      });
-    }
-    
-    // Filter out low-confidence keypoints
-    const validKeypoints = keypoints.filter(kp => kp.score > 0.3);
-    
-    if (validKeypoints.length > 0) {
-      const avgScore = validKeypoints.reduce((sum, kp) => sum + kp.score, 0) / validKeypoints.length;
-      
-      poses.push({
-        keypoints: validKeypoints,
-        score: avgScore,
-      });
-    }
-    
-    return poses;
-  };
-
-  const getKeypointName = (index: number): string => {
-    const keypointNames = [
-      'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-      'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-      'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
-      'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
-    ];
-    return keypointNames[index] || `keypoint_${index}`;
-  };
-
   const cleanup = useCallback(() => {
-    if (modelRef.current) {
-      modelRef.current.dispose();
-      modelRef.current = null;
+    if (detectorRef.current) {
+      detectorRef.current.dispose();
+      detectorRef.current = null;
     }
     setIsInitialized(false);
     setPoses([]);
