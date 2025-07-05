@@ -16,9 +16,8 @@ export default function CameraScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [countdownValue, setCountdownValue] = useState(0);
   const [showCountdown, setShowCountdown] = useState(false);
-  const [countdownEnabled, setCountdownEnabled] = useState(true);
   const [countdownDuration, setCountdownDuration] = useState(3);
-  const [saveVideoEnabled, setSaveVideoEnabled] = useState(true);
+  const [showCountdownSelector, setShowCountdownSelector] = useState(false);
   const [cameraLayout, setCameraLayout] = useState({ 
     width: screenWidth, 
     height: screenHeight 
@@ -125,8 +124,8 @@ export default function CameraScreen() {
   const startRecording = async () => {
     if (!cameraRef.current) return;
 
-    // Check media library permissions for saving video
-    if (Platform.OS !== 'web' && saveVideoEnabled && !mediaLibraryPermission?.granted) {
+    // Check media library permissions for saving video (always save videos)
+    if (Platform.OS !== 'web' && !mediaLibraryPermission?.granted) {
       const { granted } = await requestMediaLibraryPermission();
       if (!granted) {
         Alert.alert(
@@ -152,7 +151,7 @@ export default function CameraScreen() {
       // Wait for recording to complete
       const video = await videoRecordPromise;
       
-      if (video && saveVideoEnabled && Platform.OS !== 'web') {
+      if (video && Platform.OS !== 'web') {
         try {
           await MediaLibrary.saveToLibraryAsync(video.uri);
           Alert.alert('Success', 'Video saved to your photo library!');
@@ -206,12 +205,9 @@ export default function CameraScreen() {
     } else if (showCountdown) {
       // Cancel countdown
       cancelCountdown();
-    } else if (isAnalyzing) {
-      // Stop analysis
-      setIsAnalyzing(false);
     } else {
-      // Start countdown or recording
-      if (countdownEnabled) {
+      // Start countdown or immediate recording
+      if (countdownDuration > 0) {
         startCountdown();
       } else {
         startRecording();
@@ -223,17 +219,24 @@ export default function CameraScreen() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   };
 
+  const handleCountdownBubblePress = () => {
+    setShowCountdownSelector(!showCountdownSelector);
+  };
+
+  const selectCountdownDuration = (duration: number) => {
+    setCountdownDuration(duration);
+    setShowCountdownSelector(false);
+  };
+
   const getButtonIcon = () => {
     if (isRecording) return <Square size={32} color="#fff" />;
     if (showCountdown) return <Activity size={32} color="#fff" />;
-    if (isAnalyzing) return <Pause size={32} color="#fff" />;
     return <Play size={32} color="#fff" />;
   };
 
   const getButtonStyle = () => {
     if (isRecording) return [styles.analyzeButton, styles.recordButtonActive];
     if (showCountdown) return [styles.analyzeButton, styles.countdownButtonActive];
-    if (isAnalyzing) return [styles.analyzeButton, styles.analyzeButtonActive];
     return styles.analyzeButton;
   };
 
@@ -352,14 +355,42 @@ export default function CameraScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.controlButton} 
-          onPress={() => setCountdownEnabled(!countdownEnabled)}
+          style={[styles.controlButton, showCountdownSelector && styles.controlButtonActive]} 
+          onPress={handleCountdownBubblePress}
         >
-          <Text style={[styles.controlButtonText, { color: countdownEnabled ? '#007AFF' : '#8E8E93' }]}>
-            {countdownDuration}s
+          <Text style={styles.controlButtonText}>
+            {countdownDuration === 0 ? 'OFF' : `${countdownDuration}s`}
           </Text>
         </TouchableOpacity>
       </View>
+      
+      {/* Countdown selector overlay */}
+      {showCountdownSelector && (
+        <View style={styles.countdownSelectorOverlay}>
+          <View style={styles.countdownSelectorContainer}>
+            <Text style={styles.countdownSelectorTitle}>Select Countdown</Text>
+            <View style={styles.countdownOptions}>
+              {[0, 3, 5, 15, 30].map((duration) => (
+                <TouchableOpacity
+                  key={duration}
+                  style={[
+                    styles.countdownOption,
+                    countdownDuration === duration && styles.countdownOptionActive
+                  ]}
+                  onPress={() => selectCountdownDuration(duration)}
+                >
+                  <Text style={[
+                    styles.countdownOptionText,
+                    countdownDuration === duration && styles.countdownOptionTextActive
+                  ]}>
+                    {duration === 0 ? 'OFF' : `${duration}s`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -541,9 +572,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  controlButtonActive: {
+    backgroundColor: 'rgba(0, 122, 255, 0.8)',
+  },
   controlButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
+    color: '#fff',
   },
   analyzeButton: {
     backgroundColor: '#007AFF',
@@ -561,5 +596,54 @@ const styles = StyleSheet.create({
   },
   recordButtonActive: {
     backgroundColor: '#ff0000',
+  },
+  countdownSelectorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  countdownSelectorContainer: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 20,
+    padding: 24,
+    minWidth: 280,
+    alignItems: 'center',
+  },
+  countdownSelectorTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 20,
+  },
+  countdownOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  countdownOption: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  countdownOptionActive: {
+    backgroundColor: '#007AFF',
+  },
+  countdownOptionText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  countdownOptionTextActive: {
+    color: '#fff',
   },
 });
