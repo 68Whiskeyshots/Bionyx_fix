@@ -47,7 +47,7 @@ const OUTPUT_TENSOR_HEIGHT = Math.round(OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 :
 const AUTO_RENDER = false;
 
 // Whether to load model from app bundle (true) or through network (false).
-const LOAD_MODEL_FROM_BUNDLE = false;
+const LOAD_MODEL_FROM_BUNDLE = true;
 
 export default function App() {
   const cameraRef = useRef(null);
@@ -91,15 +91,16 @@ export default function App() {
         modelType: posedetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
         enableSmoothing: true,
       };
+      
       if (LOAD_MODEL_FROM_BUNDLE) {
+        // Use bundleResourceIO for offline model loading
         const modelJson = require('./offline_model/model.json');
-        const modelWeights1 = require('./offline_model/group1-shard1of2.bin');
-        const modelWeights2 = require('./offline_model/group1-shard2of2.bin');
         movenetModelConfig.modelUrl = bundleResourceIO(modelJson, [
-          modelWeights1,
-          modelWeights2,
+          require('./offline_model/group1-shard1of2.bin'),
+          require('./offline_model/group1-shard2of2.bin'),
         ]);
       }
+      
       const model = await posedetection.createDetector(
         posedetection.SupportedModels.MoveNet,
         movenetModelConfig
