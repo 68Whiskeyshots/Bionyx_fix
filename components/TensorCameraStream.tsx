@@ -326,14 +326,14 @@ export default function TensorCameraStream({
       style={styles.camera}
       autorender={AUTO_RENDER}
       type={cameraType}
-      resizeWidth={OUTPUT_TENSOR_WIDTH}    // Lightning model size (192)
-      resizeHeight={OUTPUT_TENSOR_HEIGHT}   // Lightning model size (192)
+      resizeWidth={Math.round(OUTPUT_TENSOR_WIDTH)}    // Lightning model size (192)
+      resizeHeight={Math.round(OUTPUT_TENSOR_HEIGHT)}   // Lightning model size (192)
       resizeDepth={3}
-      rotation={getTextureRotationAngleInDegrees()}
+      rotation={Math.round(getTextureRotationAngleInDegrees())}
       onReady={handleCameraStream}
       useCustomShadersToResize={false}
-      cameraTextureHeight={Math.floor(textureDims?.height ?? 1080)}
-      cameraTextureWidth={Math.floor(textureDims?.width ?? 1920)}
+      cameraTextureHeight={Math.round(textureDims?.height ?? 1080)}
+      cameraTextureWidth={Math.round(textureDims?.width ?? 1920)}
     />
   );
 }
@@ -341,6 +341,8 @@ export default function TensorCameraStream({
 const styles = StyleSheet.create({
   camera: {
     flex: 1,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   loadingContainer: {
     flex: 1,
