@@ -1,16 +1,21 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraType, useCameraPermissions } from 'expo-camera';
 import { Camera, RotateCcw, Play, Pause, Activity } from 'lucide-react-native';
-import { usePoseDetection } from '@/hooks/usePoseDetection';
 import { PoseCanvas } from '@/components/PoseCanvas';
+import TensorCameraStream from '@/components/TensorCameraStream';
+import { Pose } from '@/types/pose';
+import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState<CameraType>('back');
+  const [facing, setFacing] = useState<'front' | 'back'>('back');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [poses, setPoses] = useState<Pose[]>([]);
+  const [isTfReady, setIsTfReady] = useState(false);
   const [stats, setStats] = useState({
     fps: 0,
     frameCount: 0,
@@ -18,89 +23,61 @@ export default function CameraScreen() {
     avgConfidence: 0,
   });
   
-  const cameraRef = useRef<CameraView>(null);
-  const analysisInterval = useRef<NodeJS.Timeout>();
   const frameCountRef = useRef(0);
   const startTimeRef = useRef(Date.now());
 
-  const {
-    poses,
-    isLoading,
-    error,
-    detectPosesFromUri,
-    initializeTensorFlow,
-    cleanup,
-  } = usePoseDetection();
-
   useEffect(() => {
+    const initializeTensorFlow = async () => {
+      try {
+        // Wait for TensorFlow to be ready
+        await tf.ready();
+        setIsTfReady(true);
+      } catch (error) {
+        console.error('Failed to initialize TensorFlow:', error);
+      }
+    };
+
     initializeTensorFlow();
-    return cleanup;
   }, []);
 
   useEffect(() => {
-    if (isAnalyzing) {
-      startAnalysis();
-    } else {
-      stopAnalysis();
-    }
-    return () => stopAnalysis();
-  }, [isAnalyzing]);
-
-  useEffect(() => {
-    if (poses.length > 0) {
+    if (poses.length > 0 && isAnalyzing) {
       updateStats();
     }
-  }, [poses]);
+  }, [poses, isAnalyzing]);
 
-  const startAnalysis = () => {
-    frameCountRef.current = 0;
-    startTimeRef.current = Date.now();
-    
-    analysisInterval.current = setInterval(async () => {
-      if (cameraRef.current && !isLoading) {
-        try {
-          const photo = await cameraRef.current.takePictureAsync({
-            quality: 0.7,
-            base64: false,
-            skipProcessing: true,
-          });
-          
-          if (photo?.uri) {
-            await detectPosesFromUri(photo.uri);
-            frameCountRef.current++;
-          }
-        } catch (err) {
-          console.error('Failed to capture/analyze frame:', err);
-        }
-      }
-    }, 200); // 5 FPS
+  const handlePosesDetected = (detectedPoses: Pose[]) => {
+    setPoses(detectedPoses);
+    if (isAnalyzing) {
+      frameCountRef.current++;
+    }
   };
 
-  const stopAnalysis = () => {
-    if (analysisInterval.current) {
-      clearInterval(analysisInterval.current);
-      analysisInterval.current = undefined;
-    }
+  const handleFpsUpdate = (fps: number) => {
+    setStats(prev => ({ ...prev, fps }));
   };
 
   const updateStats = () => {
     const elapsedTime = (Date.now() - startTimeRef.current) / 1000;
-    const fps = elapsedTime > 0 ? frameCountRef.current / elapsedTime : 0;
     
     const confidenceSum = poses.reduce((sum, pose) => {
       const avgPoseConfidence = pose.keypoints.reduce((kSum, kp) => kSum + kp.score, 0) / pose.keypoints.length;
       return sum + avgPoseConfidence;
     }, 0);
     
-    setStats({
-      fps: Math.round(fps * 10) / 10,
+    setStats(prev => ({
+      ...prev,
       frameCount: frameCountRef.current,
       poseCount: poses.length,
       avgConfidence: poses.length > 0 ? Math.round((confidenceSum / poses.length) * 100) : 0,
-    });
+    }));
   };
 
   const toggleAnalysis = () => {
+    if (!isAnalyzing) {
+      frameCountRef.current = 0;
+      startTimeRef.current = Date.now();
+    }
     setIsAnalyzing(!isAnalyzing);
   };
 
@@ -133,7 +110,7 @@ export default function CameraScreen() {
     );
   }
 
-  if (isLoading) {
+  if (!isTfReady) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -145,31 +122,18 @@ export default function CameraScreen() {
     );
   }
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Error</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={initializeTensorFlow}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        mode="picture"
-      >
-      </CameraView>
+      <View style={styles.cameraContainer}>
+        <TensorCameraStream
+          facing={facing}
+          onPosesDetected={handlePosesDetected}
+          onFpsUpdate={handleFpsUpdate}
+          isAnalyzing={isAnalyzing}
+        />
+      </View>
       
-      {/* Pose visualization overlay - positioned outside CameraView */}
+      {/* Pose visualization overlay */}
       <PoseCanvas poses={poses} />
       
       {/* Stats overlay */}
@@ -210,7 +174,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  camera: {
+  cameraContainer: {
     flex: 1,
   },
   loadingContainer: {
@@ -257,35 +221,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   permissionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorTitle: {
-    color: '#ff4444',
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  errorText: {
-    color: '#8E8E93',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  retryButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  retryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
