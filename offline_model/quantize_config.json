@@ -1,0 +1,108 @@
+{
+    "fp16": {},
+    "q8": {
+        "per_model_config": {
+            "model": {
+                "op_types": [
+                    "Add",
+                    "ArgMax",
+                    "BatchNormalization",
+                    "Cast",
+                    "Clip",
+                    "Concat",
+                    "Conv",
+                    "Div",
+                    "GatherND",
+                    "Mul",
+                    "Pow",
+                    "Relu",
+                    "Reshape",
+                    "Resize",
+                    "Sigmoid",
+                    "Split",
+                    "Sqrt",
+                    "Squeeze",
+                    "Sub",
+                    "Transpose",
+                    "Unsqueeze"
+                ],
+                "weight_type": "QUInt8"
+            }
+        },
+        "per_channel": false,
+        "reduce_range": false
+    },
+    "int8": {
+        "per_model_config": {
+            "model": {
+                "op_types": [
+                    "Add",
+                    "ArgMax",
+                    "BatchNormalization",
+                    "Cast",
+                    "Clip",
+                    "Concat",
+                    "Conv",
+                    "Div",
+                    "GatherND",
+                    "Mul",
+                    "Pow",
+                    "Relu",
+                    "Reshape",
+                    "Resize",
+                    "Sigmoid",
+                    "Split",
+                    "Sqrt",
+                    "Squeeze",
+                    "Sub",
+                    "Transpose",
+                    "Unsqueeze"
+                ],
+                "weight_type": "QInt8"
+            }
+        },
+        "per_channel": false,
+        "reduce_range": false
+    },
+    "uint8": {
+        "per_model_config": {
+            "model": {
+                "op_types": [
+                    "Add",
+                    "ArgMax",
+                    "BatchNormalization",
+                    "Cast",
+                    "Clip",
+                    "Concat",
+                    "Conv",
+                    "Div",
+                    "GatherND",
+                    "Mul",
+                    "Pow",
+                    "Relu",
+                    "Reshape",
+                    "Resize",
+                    "Sigmoid",
+                    "Split",
+                    "Sqrt",
+                    "Squeeze",
+                    "Sub",
+                    "Transpose",
+                    "Unsqueeze"
+                ],
+                "weight_type": "QUInt8"
+            }
+        },
+        "per_channel": false,
+        "reduce_range": false
+    },
+    "q4": {
+        "block_size": 32,
+        "is_symmetric": true,
+        "accuracy_level": null
+    },
+    "bnb4": {
+        "block_size": 64,
+        "quant_type": 1
+    }
+}
