@@ -11,17 +11,20 @@ import * as poseDetection from '@tensorflow-models/pose-detection';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Pose } from '@/types/pose';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-// Ensure screen dimensions are integers
-const SCREEN_WIDTH = Math.round(screenWidth);
-const SCREEN_HEIGHT = Math.round(screenHeight);
-
-// Lightning model configuration
-const OUTPUT_TENSOR_WIDTH = 192;
-const OUTPUT_TENSOR_HEIGHT = 192;
 const IS_ANDROID = Platform.OS === 'android';
-const AUTO_RENDER = false; // Manual rendering control
-const TARGET_FPS = 5; // 5 FPS for controlled inference
+const IS_IOS = Platform.OS === 'ios';
+
+// Camera preview size - following template pattern
+const CAM_PREVIEW_WIDTH = Dimensions.get('window').width;
+const CAM_PREVIEW_HEIGHT = Math.round(CAM_PREVIEW_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4));
+
+// Output tensor size - following template pattern
+const OUTPUT_TENSOR_WIDTH = 180;
+const OUTPUT_TENSOR_HEIGHT = Math.round(OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4));
+
+// Control settings
+const AUTO_RENDER = false;
+const MIN_KEYPOINT_SCORE = 0.3;
 
 interface TensorCameraStreamProps {
   facing: 'front' | 'back';
@@ -41,46 +44,37 @@ export default function TensorCameraStream({
 }: TensorCameraStreamProps) {
   const [isModelReady, setIsModelReady] = useState(false);
   const [isTfReady, setIsTfReady] = useState(false);
-  const [orientation, setOrientation] = useState(ScreenOrientation.Orientation.PORTRAIT_UP);
+  const [orientation, setOrientation] = useState<ScreenOrientation.Orientation>(
+    ScreenOrientation.Orientation.PORTRAIT_UP
+  );
   
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
   const rafId = useRef<number | null>(null);
-  const frameCountRef = useRef(0);
-  const lastFpsUpdateRef = useRef(Date.now());
-
-  // Get camera type for expo-camera v13 API - use numeric values
-  const cameraType = facing === 'front' ? 1 : 0; // front = 1, back = 0
+  
+  // Camera type for expo-camera v13 API
+  const cameraType = facing === 'front' ? 1 : 0;
 
   useEffect(() => {
     const initializeTensorFlow = async () => {
       try {
-        console.log('Initializing TensorFlow for TensorCamera...');
+        console.log('Initializing TensorFlow...');
         
-        // Initialize TensorFlow with WebGL backend
+        // Set initial orientation
+        const curOrientation = await ScreenOrientation.getOrientationAsync();
+        setOrientation(curOrientation);
+        
+        // Wait for tfjs to initialize
         await tf.ready();
-        
-        // Check available backends and set appropriately
-        const backends = tf.engine().backendNames();
-        console.log('Available TensorFlow backends:', backends);
-        
-        if (backends.includes('webgl')) {
-          await tf.setBackend('webgl');
-          console.log('Using WebGL backend for better performance');
-        } else if (backends.includes('cpu')) {
-          await tf.setBackend('cpu');
-          console.log('Falling back to CPU backend');
-        }
-        
         console.log('TensorFlow ready with backend:', tf.getBackend());
         setIsTfReady(true);
 
-        // Configure MoveNet Lightning model
+        // Configure MoveNet model - using Thunder for better accuracy
         const movenetModelConfig: poseDetection.MoveNetModelConfig = {
-          modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+          modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
           enableSmoothing: true,
         };
 
-        console.log('Loading MoveNet Lightning model from web...');
+        console.log('Loading MoveNet Thunder model...');
         const detector = await poseDetection.createDetector(
           poseDetection.SupportedModels.MoveNet,
           movenetModelConfig
@@ -88,9 +82,9 @@ export default function TensorCameraStream({
 
         detectorRef.current = detector;
         setIsModelReady(true);
-        console.log('MoveNet Lightning model loaded successfully (192x192 input)');
+        console.log('MoveNet Thunder model loaded successfully');
       } catch (error) {
-        console.error('Failed to initialize TensorCamera:', error);
+        console.error('Failed to initialize TensorFlow:', error);
       }
     };
 
@@ -105,27 +99,41 @@ export default function TensorCameraStream({
       if (detectorRef.current) {
         detectorRef.current.dispose();
       }
-      if (rafId.current) {
+      if (rafId.current != null && rafId.current !== 0) {
         cancelAnimationFrame(rafId.current);
+        rafId.current = 0;
       }
       subscription?.remove();
     };
   }, []);
 
-  // Stop processing when not analyzing
-  useEffect(() => {
-    if (!isAnalyzing) {
-      if (rafId.current) {
-        cancelAnimationFrame(rafId.current);
-        rafId.current = null;
-      }
-      onPosesDetected([]);
-    }
-  }, [isAnalyzing, onPosesDetected]);
+  const isPortrait = () => {
+    return (
+      orientation === ScreenOrientation.Orientation.PORTRAIT_UP ||
+      orientation === ScreenOrientation.Orientation.PORTRAIT_DOWN
+    );
+  };
+
+  const getOutputTensorWidth = () => {
+    // Following template pattern for orientation handling
+    return isPortrait() || IS_ANDROID
+      ? OUTPUT_TENSOR_WIDTH
+      : OUTPUT_TENSOR_HEIGHT;
+  };
+
+  const getOutputTensorHeight = () => {
+    return isPortrait() || IS_ANDROID
+      ? OUTPUT_TENSOR_HEIGHT
+      : OUTPUT_TENSOR_WIDTH;
+  };
 
   const getTextureRotationAngleInDegrees = () => {
-    if (IS_ANDROID) return 0;
-    
+    // On Android, no rotation needed
+    if (IS_ANDROID) {
+      return 0;
+    }
+
+    // iOS rotation handling
     switch (orientation) {
       case ScreenOrientation.Orientation.PORTRAIT_DOWN:
         return 180;
@@ -143,61 +151,29 @@ export default function TensorCameraStream({
     updatePreview: () => void,
     gl: ExpoWebGLRenderingContext
   ) => {
-    try {
-      console.log('TensorCamera stream ready - starting frame processing loop at 5 FPS');
-      
-      // Validate stream components
-      if (!images || !updatePreview || !gl) {
-        console.error('Invalid camera stream components');
+    console.log('Camera stream ready - starting processing loop');
+    
+    const loop = async () => {
+      // Check if we should stop
+      if (rafId.current === 0 || !isAnalyzing || !detectorRef.current) {
+        // Still need to consume frames even when not analyzing
+        const imageTensor = images.next().value;
+        if (imageTensor) {
+          tf.dispose(imageTensor);
+        }
+        
+        if (!AUTO_RENDER) {
+          updatePreview();
+          gl.endFrameEXP();
+        }
+        
+        rafId.current = requestAnimationFrame(loop);
         return;
       }
-      
-      const frameDelay = 1000 / TARGET_FPS; // 200ms between frames
-      let lastFrameTime = 0;
-      
-      const loop = async () => {
-      try {
-        const currentTime = Date.now();
-        
-        // Skip frame if not enough time has passed for 5 FPS
-        if (currentTime - lastFrameTime < frameDelay) {
-          if (!AUTO_RENDER) {
-            updatePreview();
-            gl.endFrameEXP();
-          }
-          rafId.current = requestAnimationFrame(loop);
-          return;
-        }
-        
-        lastFrameTime = currentTime;
-        
-        // Only process if analyzing and model is ready
-        if (!isAnalyzing || !detectorRef.current) {
-          // Still need to consume the frame and update preview
-          const imageTensor = images.next().value as tf.Tensor3D;
-          if (imageTensor) {
-            imageTensor.dispose();
-          }
-          
-          if (!AUTO_RENDER) {
-            updatePreview();
-            gl.endFrameEXP();
-          }
-          
-          rafId.current = requestAnimationFrame(loop);
-          return;
-        }
 
-        // Get next frame tensor from camera stream
-        let imageTensor: tf.Tensor3D | undefined;
-        try {
-          const next = images.next();
-          imageTensor = next.value as tf.Tensor3D;
-        } catch (error) {
-          console.error('Failed to capture image:', error);
-          rafId.current = requestAnimationFrame(loop);
-          return;
-        }
+      try {
+        // Get the tensor from camera
+        const imageTensor = images.next().value as tf.Tensor3D;
         
         if (!imageTensor) {
           rafId.current = requestAnimationFrame(loop);
@@ -206,103 +182,75 @@ export default function TensorCameraStream({
 
         const startTs = Date.now();
         
-        try {
-          // Validate tensor shape before processing
-          const [height, width, channels] = imageTensor.shape;
-          
-          // Check if dimensions need rounding
-          if (!Number.isInteger(height) || !Number.isInteger(width) || !Number.isInteger(channels)) {
-            console.warn('Non-integer tensor shape detected:', imageTensor.shape);
-            console.log('Resizing tensor to valid integer dimensions...');
-            
-            // Calculate rounded dimensions while maintaining aspect ratio
-            const roundedHeight = Math.round(height);
-            const roundedWidth = Math.round(width);
-            
-            // Resize to rounded dimensions first, then to model input size
-            const roundedTensor = tf.image.resizeBilinear(imageTensor, [roundedHeight, roundedWidth]);
-            const validTensor = tf.image.resizeBilinear(roundedTensor, [OUTPUT_TENSOR_HEIGHT, OUTPUT_TENSOR_WIDTH]);
-            
-            tf.dispose([imageTensor, roundedTensor]);
-            
-            const poses = await detectorRef.current.estimatePoses(validTensor);
-            tf.dispose(validTensor);
-            
-            const convertedPoses = convertPoses(poses);
-            onPosesDetected(convertedPoses);
-          } else {
-            // Process frame with Lightning model
-            // The tensor should already be 192x192 from TensorCamera resizing
-            console.log('Processing frame tensor shape:', imageTensor.shape, 'dtype:', imageTensor.dtype);
-            
-            const poses = await detectorRef.current.estimatePoses(imageTensor);
-            const convertedPoses = convertPoses(poses);
-            onPosesDetected(convertedPoses);
-            
-            // Dispose tensor to prevent memory leaks
-            tf.dispose(imageTensor);
-          }
-        } catch (error) {
-          console.error('Error detecting poses:', error);
-          tf.dispose(imageTensor);
-        }
+        // Run pose detection
+        const poses = await detectorRef.current.estimatePoses(
+          imageTensor,
+          undefined,
+          Date.now()
+        );
         
         const latency = Date.now() - startTs;
+        const fps = Math.floor(1000 / latency);
         
-        // Update FPS counter
-        frameCountRef.current++;
-        const now = Date.now();
-        if (now - lastFpsUpdateRef.current > 1000) {
-          const avgFps = (frameCountRef.current * 1000) / (now - lastFpsUpdateRef.current);
-          console.log(`TensorCamera FPS: ${avgFps.toFixed(1)} (target: ${TARGET_FPS}), Latency: ${latency}ms`);
-          
-          if (onFpsUpdate) {
-            onFpsUpdate(Math.min(Math.floor(avgFps), TARGET_FPS));
-          }
-          
-          frameCountRef.current = 0;
-          lastFpsUpdateRef.current = now;
+        if (onFpsUpdate) {
+          onFpsUpdate(fps);
         }
+
+        // Convert poses to our format
+        const convertedPoses = convertPoses(poses);
+        onPosesDetected(convertedPoses);
         
-        // Manual rendering control
+        // Clean up tensor
+        tf.dispose(imageTensor);
+        
+        // Manual rendering when AUTO_RENDER is false
         if (!AUTO_RENDER) {
           updatePreview();
           gl.endFrameEXP();
         }
         
-        // Continue the loop
-        rafId.current = requestAnimationFrame(loop);
-        
       } catch (error) {
-        console.error('Error in TensorCamera frame processing loop:', error);
-        // Continue the loop even on error
-        rafId.current = requestAnimationFrame(loop);
+        console.error('Error in processing loop:', error);
       }
+      
+      // Schedule next frame
+      rafId.current = requestAnimationFrame(loop);
     };
 
-      // Start the processing loop
-      loop();
-    } catch (error) {
-      console.error('Failed to initialize camera stream:', error);
-    }
+    // Start the loop
+    rafId.current = 1; // Set to non-zero to indicate loop is active
+    loop();
   };
 
-  // Helper function to convert poses to our format
   const convertPoses = (poses: poseDetection.Pose[]): Pose[] => {
-    const scaleX = SCREEN_WIDTH / OUTPUT_TENSOR_WIDTH;
-    const scaleY = SCREEN_HEIGHT / OUTPUT_TENSOR_HEIGHT;
+    return poses.map(pose => {
+      const keypoints = pose.keypoints
+        .filter((k) => (k.score ?? 0) > MIN_KEYPOINT_SCORE)
+        .map((k) => {
+          // Flip horizontally on Android or when using back camera
+          const flipX = IS_ANDROID || facing === 'back';
+          const x = flipX ? getOutputTensorWidth() - k.x : k.x;
+          const y = k.y;
+          
+          // Scale to screen coordinates
+          const screenX = (x / getOutputTensorWidth()) * 
+            (isPortrait() ? CAM_PREVIEW_WIDTH : CAM_PREVIEW_HEIGHT);
+          const screenY = (y / getOutputTensorHeight()) * 
+            (isPortrait() ? CAM_PREVIEW_HEIGHT : CAM_PREVIEW_WIDTH);
+          
+          return {
+            x: screenX,
+            y: screenY,
+            score: k.score || 0,
+            name: k.name || 'unknown',
+          };
+        });
 
-    return poses.map(pose => ({
-      keypoints: pose.keypoints.map(kp => ({
-        x: facing === 'front' 
-          ? SCREEN_WIDTH - (kp.x * scaleX) // Mirror for front camera
-          : kp.x * scaleX,
-        y: kp.y * scaleY,
-        score: kp.score || 0,
-        name: kp.name || 'unknown',
-      })),
-      score: pose.score || 0,
-    }));
+      return {
+        keypoints,
+        score: pose.score || 0,
+      };
+    });
   };
 
   if (!isTfReady || !isModelReady) {
@@ -313,36 +261,25 @@ export default function TensorCameraStream({
     );
   }
 
-  // Platform-specific texture dimensions - ensure integer values
-  let textureDims: { width: number; height: number } | undefined;
-  if (Platform.OS === 'ios') {
-    textureDims = { width: 1920, height: 1080 };
-  } else if (Platform.OS === 'android') {
-    textureDims = { width: 1280, height: 720 };
-  }
-
   return (
     <TensorCamera
       style={styles.camera}
       autorender={AUTO_RENDER}
       type={cameraType}
-      resizeWidth={Math.round(OUTPUT_TENSOR_WIDTH)}    // Lightning model size (192)
-      resizeHeight={Math.round(OUTPUT_TENSOR_HEIGHT)}   // Lightning model size (192)
+      resizeWidth={getOutputTensorWidth()}
+      resizeHeight={getOutputTensorHeight()}
       resizeDepth={3}
-      rotation={Math.round(getTextureRotationAngleInDegrees())}
+      rotation={getTextureRotationAngleInDegrees()}
       onReady={handleCameraStream}
-      useCustomShadersToResize={false}
-      cameraTextureHeight={Math.round(textureDims?.height ?? 1080)}
-      cameraTextureWidth={Math.round(textureDims?.width ?? 1920)}
     />
   );
 }
 
 const styles = StyleSheet.create({
   camera: {
-    flex: 1,
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
   },
   loadingContainer: {
     flex: 1,
