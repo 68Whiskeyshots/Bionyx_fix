@@ -1,10 +1,15 @@
 {
   "expo": {
-    "name": "Pose Detection",
-    "slug": "pose-detection-expo",
+    "name": "BIONYX",
+    "slug": "bionyx-pose-detection",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "bionyx",
     "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -16,13 +21,22 @@
         "backgroundColor": "#ffffff"
       }
     },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
     "plugins": [
+      "expo-router",
       [
         "expo-camera",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for pose detection."
         }
       ]
-    ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
