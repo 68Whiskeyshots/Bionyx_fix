@@ -16,9 +16,6 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import { ExpoWebGLRenderingContext } from 'expo-gl';
 
-// tslint:disable-next-line: variable-name
-const TensorCamera = cameraWithTensors(Camera);
-
 const IS_ANDROID = Platform.OS === 'android';
 const IS_IOS = Platform.OS === 'ios';
 
@@ -65,6 +62,9 @@ export default function App() {
   // - 0: animation frame/loop has been canceled.
   // - >0: animation frame has been scheduled.
   const rafId = useRef<number | null>(null);
+
+  // Create TensorCamera after TensorFlow is ready
+  const TensorCamera = tfReady ? cameraWithTensors(Camera) : null;
 
   useEffect(() => {
     async function prepare() {
@@ -271,39 +271,39 @@ export default function App() {
     }
   };
 
-  if (!tfReady) {
+  if (!tfReady || !TensorCamera) {
     return (
       <View style={styles.loadingMsg}>
         <Text>Loading...</Text>
       </View>
     );
-  } else {
-    return (
-      // Note that you don't need to specify `cameraTextureWidth` and
-      // `cameraTextureHeight` prop in `TensorCamera` below.
-      <View
-        style={
-          isPortrait() ? styles.containerPortrait : styles.containerLandscape
-        }
-      >
-        <TensorCamera
-          ref={cameraRef}
-          style={styles.camera}
-          autorender={AUTO_RENDER}
-          facing={cameraType}
-          // tensor related props
-          resizeWidth={getOutputTensorWidth()}
-          resizeHeight={getOutputTensorHeight()}
-          resizeDepth={3}
-          rotation={getTextureRotationAngleInDegrees()}
-          onReady={handleCameraStream}
-        />
-        {renderPose()}
-        {renderFps()}
-        {renderCameraTypeSwitcher()}
-      </View>
-    );
   }
+
+  return (
+    // Note that you don't need to specify `cameraTextureWidth` and
+    // `cameraTextureHeight` prop in `TensorCamera` below.
+    <View
+      style={
+        isPortrait() ? styles.containerPortrait : styles.containerLandscape
+      }
+    >
+      <TensorCamera
+        ref={cameraRef}
+        style={styles.camera}
+        autorender={AUTO_RENDER}
+        facing={cameraType}
+        // tensor related props
+        resizeWidth={getOutputTensorWidth()}
+        resizeHeight={getOutputTensorHeight()}
+        resizeDepth={3}
+        rotation={getTextureRotationAngleInDegrees()}
+        onReady={handleCameraStream}
+      />
+      {renderPose()}
+      {renderFps()}
+      {renderCameraTypeSwitcher()}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
