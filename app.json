@@ -1,12 +1,28 @@
 {
-  "name": "pose-detection-expo",
-  "displayName": "pose-detection-expo",
   "expo": {
-    "name": "pose-detection-expo",
+    "name": "Pose Detection",
     "slug": "pose-detection-expo",
     "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for pose detection."
+        }
+      ]
     ]
   }
 }
